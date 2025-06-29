@@ -1,0 +1,137 @@
+1. This is my notes on the Multi-Module Maven Application.
+
+Here, In this project we also have 3 microservices as modules into a single parent module.
+
+There are two concepts used in this application. 1. How to develop a multimodule application.
+                                                 2. How to subscribe microservice applications to Eureka Discovery Server.
+
+
+ 1. How to develop a multimodule microservice application.
+
+    -> Step 1. Create a Parent Module (Parent POM file)
+
+    -> Step 2. Create multiple folders with the module names in the parent module.
+
+    -> Step 3. In the parent POM ...give the packaging as 'pom' instead if jar or war.
+                    <packaging>pom</packaging>
+
+    -> Step 4. Now declare the child modules in the parent POM with the module names(Folder names) in module section
+                    <modules>
+                            <module>eureka-server-reg</module>
+                            <module>user-reg-app</module>
+                            <module>payment-app</module>
+                    </modules>
+
+
+    -> Step 5.  Now create each of the projects in the child modules as maven projects(Maven microservices).
+    -> Step 6.  In each of the child modules pom file. update the parent section of the pom file.
+                    <parent>
+                    		<groupId>com.example</groupId>
+                    		<artifactId>multimodule-maven-app</artifactId>
+                    		<version>0.0.1-SNAPSHOT</version>
+                    		<relativePath>../pom.xml</relativePath>
+                    </parent>
+
+    -> Step 7. If there is any version dependency issue in the child modules that needs to be configured in the parent
+                POM file. configure it in the <dependencyManagement></dependencyManagement> section.
+
+                    <dependencyManagement>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.springframework.cloud</groupId>
+                                <artifactId>spring-cloud-dependencies</artifactId>
+                                <version>2022.0.4</version>
+                                <type>pom</type>
+                                <scope>import</scope>
+                            </dependency>
+                        </dependencies>
+                    </dependencyManagement>
+
+
+    -> Now run each of the spring boot applications.
+
+    -> the advantage of this kind of application is you can separately start each of the application and you do not need
+        each of the module dependent on each other
+
+        Further Enhancement
+    *** Note: You can further create a Bash Script to run such that it starts all the three apps that are inside the
+        parent module.
+
+        In case for a production grade systems you can further develop this application into making each of the microservice
+        into a docker container run app and then in each of the module write a docker file.
+
+        Now in the parent POM write the docker-compose file. We can also make those containers startup dependent on each other
+        as well such that there is a dependency between each of the start ups or we can make them independent as well.
+
+
+
+
+2. Configuring microservices into a Eureka Discovery client.
+
+    In this project, I have created a Eureka Service Discovery server and made two other microservices subscribe to this
+    server and get themselves registered into this service.
+
+    How to register microservice into a Eureka Service Discovery Service:
+
+    Step 1. Create a Eureka Service Discovery Server.
+                a. In the pom file use the dependency
+                        <dependency>
+                    			<groupId>org.springframework.cloud</groupId>
+                    			<artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+                    	</dependency>
+
+                b. In the properties file give the module a name and server port and set these properties to false.
+                        spring.application.name=eureka-server-registration
+                        server.port = 8761
+                        eureka.client.register-with-eureka = false
+                        eureka.client.fetch-registry = false
+
+                    Since we are developing our app as a service discovery we are making register-with-eureka as false
+                    and fetch-registry as false.
+
+                c. give @EnableEurekaServer annotation at the startup of the application -> at @SpringBootApplication
+
+
+    Step 2. Crete the microservices payment-app and user-reg-app   as the client apps for the eureka server
+                a. In the POM files in the client apps give this client dependency
+                            <dependency>
+                    			<groupId>org.springframework.cloud</groupId>
+                    			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+                    		</dependency>
+
+                b. In the properties files of these client apps give these properties
+                        spring.application.name=payment-service-app
+                        server.port = 8082
+                        eureka.client.register-with-eureka = true
+                        eureka.client.fetch-registry = true
+                        eureka.client.service-url.defaultZone = http://localhost:8761/eureka
+
+                c. Whenever we are going to make http calls to another service use the annotation @Loadbalanced
+                        for the server to also first look at the service discovery.
+
+
+                    give name to the Application. Give the port on which the server runs.
+                    Now  set  register-with-eureka to true and fetch-registry to true. These two will register the
+                        corresponding client app with the eureka server and give an input into the service registry
+                        maintained by the eureka server.
+
+                        But for the client apps to register themselves in the service discovery, they need to know
+                        where the service discovery is hosted. Hence we give the url of the service discovery.
+
+                        eureka.client.service-url.defaultZone = http://localhost:8761/eureka
+
+                    By this we make sure we register our client apps to the service discovery of the application.
+
+
+    Advantage: The advantage of the clients registering to the service discovery is that, If at all there needs a communication
+    between the clients and if the client hosted location is changed, we need not change the url that is needed
+    to connect to the client. We can connect to the another client by fetching their details from the service registry
+    maintained by the Discovery Service(Eureka). If the user-details app is down and is later hosted at another IP
+    the payments-app need not change the code. The user-details app registers itself at the service discovery again
+    with the latest IP and the payments app whenever we are communication to user-details, it fetches in the
+    service registry for the location where the user-details is hosted with just its name(app name from the properties).
+
+    Hence comm is always achieved without the need for separate look up and code change.
+    Lookup is done and maintained by the service discovery itself.
+
+
