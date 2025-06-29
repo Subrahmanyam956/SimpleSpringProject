@@ -31,10 +31,10 @@ public class UserRegistryController {
         Map<String, Object> response = new HashMap<>();
         HttpStatus httpStatus = HttpStatus.OK;
         if(userRegService.isRegisteredUser(userEmail)) {
-            response.put("isRegistered", true);
+            response.put("isRegisteredUser", true);
         } else {
             httpStatus = HttpStatus.NOT_FOUND;
-            response.put("isRegistered", false);
+            response.put("isRegisteredUser", false);
         }
 
         return new ResponseEntity<>(response, httpStatus);
