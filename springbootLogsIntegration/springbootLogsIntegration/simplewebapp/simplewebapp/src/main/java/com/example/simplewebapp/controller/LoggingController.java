@@ -27,9 +27,11 @@ public class LoggingController {
         String message = "successfully registered user";
         HttpStatus status = HttpStatus.OK;
         if(!loggingService.registerUser(user)) {
+            logger.error("exception occurred");
             message = "exception when registering the user";
             status = HttpStatus.INTERNAL_SERVER_ERROR;
         }
+        logger.info("successfully registered");
         return new ResponseEntity<>(message, status);
     }
 }
