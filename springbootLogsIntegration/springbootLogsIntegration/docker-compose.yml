@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  simplewebapp:
+    image: simplewebapp
+    build:
+      context: ./simplewebapp/simplewebapp/.
+    ports:
+      - "8081:8081"
+    networks:
+      - monitoring
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - simplewebapp
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - monitoring
+
+volumes:
+  grafana-storage:
+
+networks:
+  monitoring:
